@@ -67,7 +67,7 @@ def run_bot():
                 print(f"⚠️ Already exists: {record['Period']}", flush=True)
         
         
-        time.sleep(60)
+        time.sleep(30)
 
 
 bot_thread = threading.Thread(target=run_bot)

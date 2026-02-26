@@ -4,17 +4,17 @@ import time
 from datetime import datetime
 import os
 import threading
-# Inga send_file pudhusa add aagirukku
+
 from flask import Flask, send_file 
 
-# Flask Website Setup
+
 app = Flask(__name__)
 
-# Unga Variables
+
 api_url = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
 csv_filename = "ar_lottery_live_data.csv" 
 
-# Unga Exact Function
+
 def get_latest_record():
     params = {"pageNo": 1, "pageSize": 1, "ts": int(time.time() * 1000)}
     headers = {
@@ -43,7 +43,7 @@ def get_latest_record():
         print(f"Error: {e}")
     return None
 
-# Unga Loop Logic (Background Thread-kaga)
+
 def run_bot():
     print("🟢 Advanced Live Bot Started in Background! (Cloud Mode)")
     while True:
@@ -64,27 +64,27 @@ def run_bot():
         
         time.sleep(30)
 
-# Dummy Website Route (Render.com-kaga)
+
 @app.route('/')
 def home():
     return "<h1>🟢 AR Lottery Live Bot is Running 24/7!</h1><p>Data is being collected in the background.</p><h3><a href='/download'>Click here to Download CSV Data</a></h3>"
 
-# PUTHU ROUTE: Data-va download pandrathukku
+
 @app.route('/download')
 def download_data():
     try:
-        # File-a direct-ah user laptop-ku anuppum
+        
         return send_file(csv_filename, as_attachment=True)
     except Exception as e:
         return f"Innum data file create aagala, oru 1 minute wait pannunga! Error: {e}"
 
-# Cloud Server Start
+
 if __name__ == "__main__":
-    # Bot-a background-la start pandrom
+    
     bot_thread = threading.Thread(target=run_bot)
     bot_thread.daemon = True
     bot_thread.start()
     
-    # Flask Web server-a start pandrom
+    
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

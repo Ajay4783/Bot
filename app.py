@@ -9,22 +9,20 @@ from flask import Flask, send_file
 app = Flask(__name__)
 csv_filename = "ar_lottery_live_data.csv" 
 
+# !!! INGA UNGA SCRAPERAPI KEY-A PODUNGA !!!
+SCRAPER_API_KEY = "1ec6c00053c004944e854b7712defbb9"
+
 def get_latest_record():
-    params = {"pageNo": 1, "pageSize": 1, "ts": int(time.time() * 1000)}
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://draw.ar-lottery01.com/",
-        "Origin": "https://draw.ar-lottery01.com",
-        "Connection": "keep-alive"
-    }
+    target_url = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
+    
+    # ScraperAPI vazhiya request-a anuppurom
+    proxy_url = f"https://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={target_url}"
+    
     try:
-        # Timeout add pannirukkom
-        response = requests.get("https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json", params=params, headers=headers, timeout=10)
+        # Proxy vazhiya porathala timeout konjam athigama vekkalaam (20s)
+        response = requests.get(proxy_url, timeout=20)
         
-        # API status check (Cloud-la IP block aagirukkaa nu paarkka)
-        print(f"📡 API Status Code: {response.status_code}", flush=True) 
+        print(f"📡 Proxy Status: {response.status_code}", flush=True) 
         
         if response.status_code == 200:
             data = response.json().get("data", {}).get("list", [])
@@ -40,25 +38,19 @@ def get_latest_record():
                     "Time_Collected": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
     except Exception as e:
-        print(f"❌ API Error: {e}", flush=True)
+        print(f"❌ Proxy/API Error: {e}", flush=True)
     return None
 
 def run_bot():
-    print("🟢 Advanced Live Bot Started in Background! (Cloud Mode)", flush=True)
-    
-    # Error thavirkka, app start aana udaneye oru empty CSV file create pannidrom
+    print("🟢 Bot with Proxy Started!", flush=True)
     if not os.path.exists(csv_filename):
         pd.DataFrame(columns=["Period", "Number", "Big_Small", "Color", "Price", "Time_Collected"]).to_csv(csv_filename, index=False)
-        print("📁 Empty CSV File Created Successfully!", flush=True)
 
     while True:
-        print("⏳ Fetching new data...", flush=True)
         record = get_latest_record()
-        
         if record:
             file_exists = os.path.isfile(csv_filename)
             is_new = True
-            
             if file_exists:
                 df_existing = pd.read_csv(csv_filename).tail(10)
                 if str(record["Period"]) in df_existing["Period"].astype(str).values:
@@ -67,29 +59,27 @@ def run_bot():
             if is_new:
                 df = pd.DataFrame([record])
                 df.to_csv(csv_filename, mode='a', header=not file_exists, index=False)
-                print(f"✅ Saved -> Period: {record['Period']} | No: {record['Number']} | {record['Big_Small']}", flush=True)
+                print(f"✅ Saved Period: {record['Period']}", flush=True)
             else:
-                print(f"⚠️ Old Period, waiting for next... ({record['Period']})", flush=True)
+                print(f"⚠️ Already exists: {record['Period']}", flush=True)
         else:
-            print("❌ Failed to get data from API.", flush=True)
+            print("❌ Proxy-layum block aagirukku pola!", flush=True)
         
-        time.sleep(30)
+        # Free credits save panna interval-a 60 seconds (1 min)-ah mathikkonga
+        time.sleep(60) 
 
-# Render Cloud-kaga Thread-a veliye start pandrom
+# Render setup...
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
 bot_thread.start()
 
 @app.route('/')
 def home():
-    return "<h1>🟢 AR Lottery Live Bot is Running 24/7!</h1><p>Data is being collected in the background.</p><h3><a href='/download'>Click here to Download CSV Data</a></h3>"
+    return "<h1>🟢 Bot with Proxy is Running!</h1>"
 
 @app.route('/download')
 def download_data():
-    try:
-        return send_file(csv_filename, as_attachment=True)
-    except Exception as e:
-        return f"Innum data file create aagala! Error: {e}"
+    return send_file(csv_filename, as_attachment=True)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))

@@ -4,7 +4,8 @@ import time
 from datetime import datetime
 import os
 import threading
-from flask import Flask
+# Inga send_file pudhusa add aagirukku
+from flask import Flask, send_file 
 
 # Flask Website Setup
 app = Flask(__name__)
@@ -66,7 +67,16 @@ def run_bot():
 # Dummy Website Route (Render.com-kaga)
 @app.route('/')
 def home():
-    return "<h1>🟢 AR Lottery Live Bot is Running 24/7!</h1><p>Data is being collected in the background.</p>"
+    return "<h1>🟢 AR Lottery Live Bot is Running 24/7!</h1><p>Data is being collected in the background.</p><h3><a href='/download'>Click here to Download CSV Data</a></h3>"
+
+# PUTHU ROUTE: Data-va download pandrathukku
+@app.route('/download')
+def download_data():
+    try:
+        # File-a direct-ah user laptop-ku anuppum
+        return send_file(csv_filename, as_attachment=True)
+    except Exception as e:
+        return f"Innum data file create aagala, oru 1 minute wait pannunga! Error: {e}"
 
 # Cloud Server Start
 if __name__ == "__main__":

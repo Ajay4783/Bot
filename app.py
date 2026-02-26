@@ -4,16 +4,10 @@ import time
 from datetime import datetime
 import os
 import threading
-
-from flask import Flask, send_file 
-
+from flask import Flask, send_file
 
 app = Flask(__name__)
-
-
-api_url = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
 csv_filename = "ar_lottery_live_data.csv" 
-
 
 def get_latest_record():
     params = {"pageNo": 1, "pageSize": 1, "ts": int(time.time() * 1000)}
@@ -22,32 +16,41 @@ def get_latest_record():
         "Accept": "application/json"
     }
     try:
-        response = requests.get(api_url, params=params, headers=headers)
+        # Timeout add pannirukkom
+        response = requests.get("https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json", params=params, headers=headers, timeout=10)
+        
+        # API status check (Cloud-la IP block aagirukkaa nu paarkka)
+        print(f"📡 API Status Code: {response.status_code}", flush=True) 
+        
         if response.status_code == 200:
             data = response.json().get("data", {}).get("list", [])
             if data:
                 item = data[0]
                 number = int(item.get("number", 0))
-                color = item.get("color", "Unknown")
-                price = item.get("price", item.get("premium", "N/A")) 
-
                 return {
                     "Period": item.get("issueNumber"),
                     "Number": number,
                     "Big_Small": "Big" if number >= 5 else "Small",
-                    "Color": color,
-                    "Price": price,
+                    "Color": item.get("color", "Unknown"),
+                    "Price": item.get("price", item.get("premium", "N/A")),
                     "Time_Collected": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ API Error: {e}", flush=True)
     return None
 
-
 def run_bot():
-    print("🟢 Advanced Live Bot Started in Background! (Cloud Mode)")
+    print("🟢 Advanced Live Bot Started in Background! (Cloud Mode)", flush=True)
+    
+    # Error thavirkka, app start aana udaneye oru empty CSV file create pannidrom
+    if not os.path.exists(csv_filename):
+        pd.DataFrame(columns=["Period", "Number", "Big_Small", "Color", "Price", "Time_Collected"]).to_csv(csv_filename, index=False)
+        print("📁 Empty CSV File Created Successfully!", flush=True)
+
     while True:
+        print("⏳ Fetching new data...", flush=True)
         record = get_latest_record()
+        
         if record:
             file_exists = os.path.isfile(csv_filename)
             is_new = True
@@ -60,31 +63,30 @@ def run_bot():
             if is_new:
                 df = pd.DataFrame([record])
                 df.to_csv(csv_filename, mode='a', header=not file_exists, index=False)
-                print(f"✅ Saved -> Period: {record['Period']} | No: {record['Number']} | {record['Big_Small']} | Color: {record['Color']}")
+                print(f"✅ Saved -> Period: {record['Period']} | No: {record['Number']} | {record['Big_Small']}", flush=True)
+            else:
+                print(f"⚠️ Old Period, waiting for next... ({record['Period']})", flush=True)
+        else:
+            print("❌ Failed to get data from API.", flush=True)
         
         time.sleep(30)
 
+# Render Cloud-kaga Thread-a veliye start pandrom
+bot_thread = threading.Thread(target=run_bot)
+bot_thread.daemon = True
+bot_thread.start()
 
 @app.route('/')
 def home():
     return "<h1>🟢 AR Lottery Live Bot is Running 24/7!</h1><p>Data is being collected in the background.</p><h3><a href='/download'>Click here to Download CSV Data</a></h3>"
 
-
 @app.route('/download')
 def download_data():
     try:
-        
         return send_file(csv_filename, as_attachment=True)
     except Exception as e:
-        return f"Innum data file create aagala, oru 1 minute wait pannunga! Error: {e}"
-
+        return f"Innum data file create aagala! Error: {e}"
 
 if __name__ == "__main__":
-    
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

@@ -12,8 +12,12 @@ csv_filename = "ar_lottery_live_data.csv"
 def get_latest_record():
     params = {"pageNo": 1, "pageSize": 1, "ts": int(time.time() * 1000)}
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://draw.ar-lottery01.com/",
+        "Origin": "https://draw.ar-lottery01.com",
+        "Connection": "keep-alive"
     }
     try:
         # Timeout add pannirukkom
